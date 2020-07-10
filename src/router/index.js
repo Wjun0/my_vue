@@ -3,7 +3,8 @@ import VueRouter from 'vue-router'
 // import Home from '../views/Home.vue'
 import Login from '../components/Login.vue'
 import Home from '../components/Home.vue'
-
+import Wellcome from '../components/Wellcome.vue'
+import Users from '../components/users/user.vue'
 
 Vue.use(VueRouter)
 
@@ -27,7 +28,14 @@ const routes = [
     component: Login
   },
   {path: '/', redirect: 'Login'},
-  {path: '/home',name: 'Home', component: Home},
+
+  {path: '/home',name: 'Home', 
+    component: Home, 
+    redirect: '/wellcome',
+    children:[
+      {path: '/wellcome',component: Wellcome},
+      {path: '/011',component:Users}
+    ]},
 ]
 
 const router = new VueRouter({
@@ -47,5 +55,11 @@ router.beforeEach((to, from, next) => {
   //放行
   next()
 })
+
+// 项目能运行，但是会报Avoid redundant navigation 的问题解决
+const originalPush = VueRouter.prototype.push
+   VueRouter.prototype.push = function push(location) {
+   return originalPush.call(this, location).catch(err => err)
+}
 
 export default router

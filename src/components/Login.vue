@@ -66,14 +66,14 @@ export default {
             if (!v) return;
             // 验证通过发送请求
             const {data:res} = await this.$http.post('login',this.loginForm);
-            if (res.status !== 200) return this.$my_message.error('登录失败！');
+            if (res.data.status !== 200) return this.$my_message.error('登录失败！');
             this.$my_message.success('登录成功');
             
             // 登录成功之后token保存到sessionStorage中
                 // 1.1项目中出来登录接口外，其他的接口都要通过登录的token才能访问
                 // 1.2 token只能在当前网站打开起见生效，所以将token保存在sessionStorage中，
             //2，通过导航跳转到后台主页，地址是 /home
-            window.sessionStorage.setItem('token',res.token);
+            window.sessionStorage.setItem('token',res.data.token);
             this.$router.push('/home');
         })
     }
