@@ -43,13 +43,21 @@
 
         <!-- 自定义作用域插槽 -->
         <el-table-column label="操作" width="175px">
-          <el-button type="primary" icon="el-icon-edit" size="mini"></el-button>
-          <el-button type="danger" icon="el-icon-delete" size="mini"></el-button>
-
-          <!-- 分配角色按钮 -->
-          <el-tooltip effect="dark" content="分配角色" placement="top" :enterable="false">
-            <el-button type="warning" icon="el-icon-setting" size="mini"></el-button>
-          </el-tooltip>
+          <template slot-scope="scope">
+            <!-- 修改用户数据 -->
+            <el-button
+              @click="showEditDialog(scope.row.id)"
+              type="primary"
+              icon="el-icon-edit"
+              size="mini"
+            ></el-button>
+            <!-- 删除用户 -->
+            <el-button @click="removeUserById(scope.row.id)" type="danger" icon="el-icon-delete" size="mini"></el-button>
+            <!-- 分配角色按钮 -->
+            <el-tooltip effect="dark" content="分配角色" placement="top" :enterable="false">
+              <el-button type="warning" icon="el-icon-setting" size="mini"></el-button>
+            </el-tooltip>
+          </template>
         </el-table-column>
       </el-table>
 
@@ -65,8 +73,10 @@
       ></el-pagination>
     </el-card>
 
-    <!-- 弹出的对话框 -->
-    <el-dialog title="添加用户" :visible.sync="dialogVisible" width="50%">
+<!-- _____________添加用户__________________ -->
+
+    <!-- 弹出添加用户的对话框 -->
+    <el-dialog title="添加用户" :visible.sync="dialogVisible" width="50%" @close="addDialogVisible">
       <!-- 内容信息 -->
       <el-form :model="addForm" :rules="addFormRules" ref="addFormRef" label-width="70px">
         <el-form-item label="用户名" prop="username">
@@ -83,15 +93,48 @@
         </el-form-item>
 
         <el-form-item label="角色" prop="role_name">
-          <el-select v-model="addForm.ops" placeholder="请选择">
-            <el-option v-for="item in options" :key="item.ops" :label="item.ops" :value="item.ops"></el-option>
+          <el-select v-model="addForm.role_name" placeholder="请选择">
+            <el-option
+              v-for="(item) in options"
+              :key="item.ops"
+              :label="item.ops"
+              :value="item.ops"
+            ></el-option>
           </el-select>
         </el-form-item>
       </el-form>
       <!-- 底部按钮 -->
       <span slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+        <el-button type="primary" @click="addUser">确 定</el-button>
+      </span>
+    </el-dialog>
+
+
+<!-- ------------修改用户--------------------->
+
+    <!-- 弹出修改用户的对话框 -->
+    <el-dialog title="修改用户信息" :visible.sync="editDialogVisible" width="50%" @close="editDialogClose">
+      <el-form
+        :model="editForm"
+        :rules="editFormRes"
+        ref="editFormRef"
+        label-width="70px"
+      >
+        <el-form-item label="用户名" >
+          <el-input v-model="editForm.username" disabled></el-input>
+        </el-form-item>
+
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="editForm.email"></el-input>
+        </el-form-item>
+        <el-form-item label="手机号" prop="mobile">
+          <el-input v-model="editForm.mobile"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="editDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="editUserInfo">确 定</el-button>
       </span>
     </el-dialog>
   </div>
@@ -100,6 +143,23 @@
 <script>
 export default {
   data() {
+    // 验证邮箱函数
+    var checkEmail = (rule, value, callback) => {
+      const regEmail = /^([a-zA-Z0-9_-])+@([a-zA-Z0-9_-])+(\.[a-zA-Z0-9_-])+/;
+      if (regEmail.test(value)) {
+        return callback();
+      }
+      callback(new Error("请输入合法的邮箱"));
+    };
+
+    //验证手机号
+    var checkMobale = (rule, value, callback) => {
+      const regMobile = /^(1[3456789]\d{9})$/;
+      if (regMobile.test(value)) {
+        return callback();
+      }
+      callback(new Error("请输入合法的手机号"));
+    };
     return {
       //获取用户列表的对象
       queryInfo: {
@@ -113,14 +173,18 @@ export default {
       total: 0,
       // 控制添加用户表单数据的显示
       dialogVisible: false,
+      // 修改用户信息的表单的显示与隐藏
+      editDialogVisible: false,
       //用户表单信息绑定
       addForm: {
         username: "",
         password: "",
         email: "",
         mobile: "",
-        ops: ""
+        role_name: ""
       },
+      // 修改用户的表单数据
+      editForm: {},
       // 用户表单验证
       addFormRules: {
         username: [
@@ -131,11 +195,31 @@ export default {
           { required: true, message: "请输入密码", trigger: "blur" },
           { min: 6, max: 15, message: "长度在 6 到 15 个字符", trigger: "blur" }
         ],
-        email: [{ required: true, message: "请输入邮箱", trigger: "blur" }],
-        mobile: [{ required: true, message: "请输入电话", trigger: "blur" }],
-        role_name: [{ required: true, message: "请选择角色类型", trigger: "blur"}]
+        email: [
+          { required: true, message: "请输入邮箱", trigger: "blur" },
+          { validator: checkEmail, trigger: "blur" }
+        ],
+        mobile: [
+          { required: true, message: "请输入电话", trigger: "blur" },
+          { validator: checkMobale, trigger: "blur" }
+        ],
+        role_name: [
+          { required: true, message: "请选择角色类型", trigger: "change" }
+        ]
       },
-      options: [{ ops: "超级管理员" }, { ops: "项目主管" }, { ops: "普通员工" }]
+      options: [{ ops: "超级管理员" }, { ops: "项目主管" }, { ops: "普通员工" }],
+
+      //添加用户的表单验证
+      editFormRes:{
+        email: [
+          { required: true, message: "请输入邮箱", trigger: "blur" },
+          { validator: checkEmail, trigger: "blur" }
+        ],
+        mobile: [
+          { required: true, message: "请输入电话", trigger: "blur" },
+          { validator: checkMobale, trigger: "blur" }
+        ],
+      }
     };
   },
 
@@ -144,6 +228,76 @@ export default {
   },
 
   methods: {
+    // 删除用户
+    async removeUserById(id) {
+      //先弹框询问是否删除
+      const confirmdata = await this.$confirm('此操作将永久删除该用户, 是否继续?', '提示',{
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).catch(err => {return err})
+      if (confirmdata !== 'confirm') {
+        return this.$my_message.info('已取消删除')
+      }
+      const { data:res } = await this.$http.delete('users/' + id)
+      if (res.message !== 'OK') {return this.$my_message.error('删除失败！')}
+        this.$my_message.success('删除成功')
+        //删除成功，更新数据
+        this.getUserList()
+    },
+
+    //修改用户信息
+    editUserInfo() {
+      this.$refs.editFormRef.validate(async valid =>{
+        if (!valid) return;
+        //验证通过。发起请求
+        const { data: res } = await this.$http.put('users/' + this.editForm.id,
+         {'email':this.editForm.email,
+         'mobile':this.editForm.mobile})
+        if (res.message !== "OK") {return this.$my_message.error('更新用户数据失败')}
+        //关闭对话框
+        this.editDialogVisible = false
+        //刷新数据
+        this.getUserList()
+        //提示更新成功
+        this.$my_message.success('更新用户信息成功')
+      })
+    },
+    
+    // 查询用户信息的函数
+    async showEditDialog(id) {
+      const { data: res } = await this.$http.get("users/" + id);
+      if (res.message !== "OK") {
+        return this.$my_message.error("查询用户数据失败！");
+      }
+      this.editForm = res.data;
+      this.editDialogVisible = true;
+    },
+
+    //综合认证，然后发请求添加用户
+    addUser() {
+      this.$refs.addFormRef.validate(async valid => {
+        if (!valid) return;
+        const { data: res } = await this.$http.post("users", this.addForm);
+        if (res.message != "OK") {
+          this.$my_message.error("添加用户失败！");
+        }
+        //隐藏添加的对话框
+        this.dialogVisible = false;
+        this.$my_message.success("添加用户成功");
+        this.getUserList()
+        
+      });
+    },
+    // 重置表单
+    addDialogVisible() {
+      this.$refs.addFormRef.resetFields();
+    },
+    //重置修改表单
+    editDialogClose() {
+      this.$refs.editFormRef.resetFields();
+    },
+    // 获取用户数据
     async getUserList() {
       const { data: res } = await this.$http.get("users", {
         params: this.queryInfo

@@ -22,7 +22,8 @@ import {
     Pagination,
     Dialog,
     Select,
-    Option
+    Option,
+    MessageBox
 } from 'element-ui'
 
 
@@ -57,4 +58,6 @@ Vue.use(Pagination)
 Vue.use(Dialog)
 Vue.use(Select)
 Vue.use(Option)
+// 用this点出来的全局属性
 Vue.prototype.$my_message = Message
+Vue.prototype.$confirm = MessageBox.confirm
