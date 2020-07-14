@@ -1,4 +1,10 @@
-# shop1
+# 运行</br>
+1,vue ui 进入后台管理，然后运行app
+
+
+
+
+
 
 ## Project setup
 ```
